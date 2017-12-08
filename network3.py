@@ -1,7 +1,7 @@
 import queue
 import copy
 import threading
-from link2 import LinkFrame
+from link3 import LinkFrame
 
 
 ## wrapper class for a queue of packets
@@ -51,6 +51,7 @@ class NetworkPacket:
     ## packet encoding lengths
     dst_S_length = 5
     src_S_length = 2
+    priority_S_length = 1
 
     ##@param dst: address of the destination host
     # @param data_S: packet payload
@@ -59,6 +60,7 @@ class NetworkPacket:
         self.dst = dst
         self.src = src
         self.data_S = data_S
+        self.priority = priority
 
 
     ## called when printing the object
@@ -69,6 +71,7 @@ class NetworkPacket:
     def to_byte_S(self):
         byte_S = str(self.dst).zfill(self.dst_S_length)
         byte_S += str(self.src).zfill(self.src_S_length)
+        byte_S += str(self.priority)
         byte_S += self.data_S
         return byte_S
 
@@ -78,8 +81,9 @@ class NetworkPacket:
     def from_byte_S(self, byte_S):
         dst = byte_S[0: NetworkPacket.dst_S_length].strip('0')
         src = byte_S[NetworkPacket.dst_S_length:NetworkPacket.dst_S_length+NetworkPacket.src_S_length]
-        data_S = byte_S[NetworkPacket.dst_S_length+NetworkPacket.src_S_length:]
-        return self(dst, src, data_S)
+        priority_S = byte_S[NetworkPacket.dst_S_length+NetworkPacket.src_S_length:NetworkPacket.dst_S_length+NetworkPacket.src_S_length+1]
+        data_S = byte_S[NetworkPacket.dst_S_length+NetworkPacket.src_S_length+1:]
+        return self(dst, src, data_S, priority= priority_S)
 
     def parse_dst(self):
         return self.dst
@@ -201,7 +205,6 @@ class Router:
             elif fr.type_S == "MPLS":
                 #re-label mpls
                 new_label = int(pkt_S[0:2].strip('0'))
-                new_label = self.frwd_tbl_D[new_label]
                 m_fr = MPLSFrame.from_byte_S(pkt_S, new_label=new_label) # parse a frame out
                 # send the MPLS frame for processing
                 self.process_MPLS_frame(m_fr, i)
@@ -214,7 +217,8 @@ class Router:
     def process_network_packet(self, pkt, i):
         src = pkt.src
         dst = pkt.dst
-        label = self.frwd_tbl_D[(src,dst)]
+        pri = pkt.priority
+        label = self.encap_tbl_D[(src, dst, pri)]
         m_fr = MPLSFrame(pkt, label)
         print('%s: encapsulated packet "%s" as MPLS frame "%s"' % (self, pkt, m_fr))
         # send the encapsulated packet for processing as MPLS frame
@@ -229,7 +233,7 @@ class Router:
         try:
             # Check decapsulation table
 
-            out_int = int(m_fr.label)
+            out_int = self.frwd_tbl_D[int(m_fr.label)]
             # if out interface is in decapsulation table, decapsulate
             if (self.decap_tbl_D[out_int] == 0):
                 fr = LinkFrame('MPLS', m_fr.to_byte_S())

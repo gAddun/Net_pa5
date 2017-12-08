@@ -1,5 +1,5 @@
-from network2 import Router, Host
-from link2 import Link, LinkLayer
+from network3 import Router, Host
+from link3 import Link, LinkLayer
 import threading
 from time import sleep
 import sys
@@ -21,8 +21,8 @@ if __name__ == '__main__':
     object_L.append(host_3)
 
     # create routers and routing tables for connected clients (subnets)
-    encap_tbl_D = {}  # table used to encapsulate network packets into MPLS frames
-    frwd_tbl_D = {("H1", "H3"):2, ("H2",'H3'):3}  # table used to forward MPLS frames
+    encap_tbl_D = {("H1", "H3", '1'):1, ("H1", "H3", '0'):3, ("H2",'H3', '1'):4, ("H2",'H3', '0'):2}  # table used to encapsulate network packets into MPLS frames
+    frwd_tbl_D = {1:2, 4:2, 2:3, 3:3}  # table used to forward MPLS frames
     decap_tbl_D = {1: 1, 0: 1, 2: 0, 3: 0}  # table used to decapsulate network packets from MPLS frames
     router_a = Router(name='RA',
                       intf_capacity_L=[500, 500, 500, 500],
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     object_L.append(router_a)
 
     encap_tbl_D = {}
-    frwd_tbl_D = {2: 1, 1:0}
+    frwd_tbl_D = {4: 1, 1:1}
     decap_tbl_D = {1: 0, 0: 0, 2: 0}
     router_b = Router(name='RB',
                       intf_capacity_L=[500, 100],
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     object_L.append(router_b)
 
     encap_tbl_D = {}
-    frwd_tbl_D = {0:1, 1:0, 3:1}
+    frwd_tbl_D = {2:1, 3:1}
     decap_tbl_D = {1:0, 0:0, 2:0}
     router_c = Router(name='RC',
                       intf_capacity_L=[500, 100],
@@ -55,8 +55,8 @@ if __name__ == '__main__':
     object_L.append(router_c)
 
     encap_tbl_D = {}
-    frwd_tbl_D = {('H1', 'H3'):2, ("H2", "H3"):2, 1:2}
-    decap_tbl_D = {1: 0, 0: 0, 2: 1}
+    frwd_tbl_D = {1:2, 2:2, 3:2}
+    decap_tbl_D = {1: 1, 0: 0, 2: 1}
     router_d = Router(name='RD',
                       intf_capacity_L=[500, 500, 100],
                       encap_tbl_D=encap_tbl_D,
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # create some send events
     for i in range(5):
         priority = i % 2
-        #host_1.udt_send('H3', 'MESSAGE_%d_FROM_H1' % i, priority)
+        host_1.udt_send('H3', 'MESSAGE_%d_FROM_H1' % i, priority)
         host_2.udt_send('H3', 'MESSAGE_%d_FROM_H2' % i, priority)
 
     # give the network sufficient time to transfer all packets before quitting
